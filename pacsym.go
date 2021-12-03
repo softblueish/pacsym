@@ -12,7 +12,12 @@ import (
 )
 
 // Arguments
-var pacsumArguments = []string{"-s", "--separate-builddir", "--local", "-l"}
+var pacsymArguments = []string{"-s", "--separate-builddir", "--local", "-l"}
+
+// Common variabes
+var (
+	makearguments string
+)
 
 // Variables for sync
 var (
@@ -27,11 +32,17 @@ var (
 	tarPath        string
 	url            string
 	buildarguments = []string{}
-	makearguments  string
+)
+
+// Variables for install
+
+var (
+	packageBuiltDir  string
+	installarguments = []string{}
 )
 
 func help() {
-	fmt.Printf("sync - Symlinks all installed packages in /usr/pkg\nbuild <URL> [OPTIONS] [MAKEFLAGS] - Compiles a package from url or local file\n--local -l - Compiles from local file, takes a filepath instead of url\n--separate-builddir -s - Compiles in a separate build directory")
+	fmt.Printf("sync - Symlinks all installed packages in /usr/pkg\nbuild <URL> [OPTIONS] [MAKEFLAGS] - Compiles a package from url or local file\n--local -l - Compiles from local file, takes a filepath instead of url\n--separate-builddir -s - Compiles in a separate build directory\ninstall <PACKAGE NAME> <PACKAGE VERSION> [MAKEFLAGS] - Installs previously built package and gives it a name and a version.\nclean - Removes leftover sourcecode.")
 }
 
 func walk(s string, d fs.DirEntry, err error) error {
@@ -70,7 +81,7 @@ func main() {
 				packagePath = append(packagePath, "/usr/pkg/"+f.Name())
 			}
 
-			// Reads package version
+			/// Reads package version
 			for i := 0; i < len(packagePath); i++ {
 				files, err := ioutil.ReadDir(packagePath[i])
 				if err != nil {
@@ -171,7 +182,7 @@ func main() {
 
 			// Removes pacsym specific arguments
 			for i := 0; i < len(buildarguments); i++ {
-				if inList(pacsumArguments, buildarguments[i]) == false {
+				if inList(pacsymArguments, buildarguments[i]) == false {
 					makearguments = makearguments + " " + buildarguments[i]
 				}
 			}
@@ -206,6 +217,50 @@ func main() {
 				return
 			}
 			fmt.Println(string(stdout))
+
+		case "install":
+			packageName := os.Args[1]
+			packageVer := os.Args[2]
+			installarguments = os.Args[3:]
+
+			// Discoveres built packages
+			files, err := ioutil.ReadDir("/usr/pkgsrc")
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, f := range files {
+				packageBuiltDir = "/usr/pkgsrc/" + f.Name()
+			}
+
+			os.Chdir(packageBuiltDir)
+
+			// Attempts to chdir into built
+			os.Chdir("build")
+
+			for i := 0; i < len(installarguments); i++ {
+				makearguments = makearguments + " " + installarguments[i]
+			}
+
+			fmt.Println("Installing...")
+			destdir := "DESTDIR=/usr/pkg/" + packageName + "/" + packageVer + "/"
+			cmd := exec.Command("make", "install", destdir, makearguments)
+			stdout, err := cmd.Output()
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			fmt.Println(string(stdout))
+			fmt.Println("Done.")
+
+		case "clean":
+			cmd := exec.Command("rm -r * /usr/pkgsrc/*")
+			stdout, err := cmd.Output()
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			fmt.Println(string(stdout))
+			fmt.Println("Done.")
 
 		default:
 			help()

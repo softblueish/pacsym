@@ -1,4 +1,4 @@
-VER=2.1
+VER=2.2
 pacsym:
   go build pacsym.go
 install:
