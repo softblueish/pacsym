@@ -6,7 +6,7 @@ A package manager powered by symlinks.
 
 The package manager assumes that all software installed is installed with `/usr/pkg/<packagename>/<packageversion>`. The same software may not have two versions of the same software installed at the same time, it would cause a slot conflict which the software doesn't know yet how to handle.
 
-To build software you pass the `build` command
+To build software you pass the `build` command, where ``<URL>`` is replaced with a url leading to a tarball with the source code to the software.
 
 ```
 pacsym build <URL> [OPTIONS] [MAKEFLAGS]
