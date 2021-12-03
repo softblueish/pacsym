@@ -16,7 +16,7 @@ var pacsymArguments = []string{"-s", "--separate-builddir", "--local", "-l"}
 
 // Common variabes
 var (
-	makearguments string
+	makearguments = []string{}
 )
 
 // Variables for sync
@@ -43,17 +43,17 @@ var (
 
 func help() {
 	fmt.Printf("\n" +
-	"Commands\n" + 
-	"======================\n" +
-	"sync - Symlinks all installed packages in /usr/pkg\n" + 
-	"build <URL> [OPTIONS] [MAKEFLAGS] - Compiles a package from url or local file\n" + 
-	"install <PACKAGE NAME> <PACKAGE VERSION> [MAKEFLAGS] - Installs a built package and gives it a name and a version.\n" + 
-	"clean - Removes leftover sourcecode.\n" +
-	"\nFlags\n" +
-	"======================\n" +
-	"--local -l - Compiles from local file, takes a filepath instead of url\n" + 
-	"--separate-builddir -s - Compiles in a separate build directory\n" +
-	"\n")
+		"Commands\n" +
+		"======================\n" +
+		"sync - Symlinks all installed packages in /usr/pkg\n" +
+		"build <URL> [OPTIONS] [MAKEFLAGS] - Compiles a package from url or local file\n" +
+		"install <PACKAGE NAME> <PACKAGE VERSION> [MAKEFLAGS] - Installs a built package and gives it a name and a version.\n" +
+		"clean - Removes leftover sourcecode.\n" +
+		"\nFlags\n" +
+		"======================\n" +
+		"--local -l - Compiles from local file, takes a filepath instead of url\n" +
+		"--separate-builddir -s - Compiles in a separate build directory\n" +
+		"\n")
 }
 
 func walk(s string, d fs.DirEntry, err error) error {
@@ -156,7 +156,6 @@ func main() {
 				tarName = (strings.Split(url, "/")[len(strings.Split(url, "/"))-1])
 				tarPath = "./" + tarName
 			}
-			fmt.Println(tarName)
 
 			// Moves package to /usr/pkgsrc/, aka build location.
 			cmd := exec.Command("cp", "-v", tarPath, "/usr/pkgsrc/")
@@ -169,6 +168,13 @@ func main() {
 
 			// Extract tarball
 			cmd = exec.Command("tar", "xvf", tarName, "-C", "/usr/pkgsrc/")
+			stdout, err = cmd.Output()
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			pkgSrcTarDir := "/usr/pkgsrc/" + tarName
+			cmd = exec.Command("rm", pkgSrcTarDir)
 			stdout, err = cmd.Output()
 			if err != nil {
 				fmt.Println(err.Error())
@@ -190,18 +196,25 @@ func main() {
 
 			// Changes dir into builddir
 			os.Chdir(builddir)
-
-			// Removes pacsym specific arguments
-			for i := 0; i < len(buildarguments); i++ {
-				if inList(pacsymArguments, buildarguments[i]) == false {
-					makearguments = makearguments + " " + buildarguments[i]
-				}
+			cmd = exec.Command("pwd")
+			stdout, err = cmd.Output()
+			if err != nil {
+				fmt.Println(err.Error())
+				return
 			}
+			fmt.Println(string(stdout))
+			conflocation := builddir + "/configure"
 
 			fmt.Println("Configuring...")
 			if inList(buildarguments, "--separate-builddir") || inList(buildarguments, "-s") {
+				// Removes pacsym specific arguments
+				for i := 0; i < len(buildarguments); i++ {
+					if inList(pacsymArguments, buildarguments[i]) == false {
+						makearguments = append(makearguments, buildarguments[i])
+					}
+				}
 				// Configures package if in builddir
-				cmd = exec.Command("../configure", makearguments)
+				cmd = exec.Command(conflocation, makearguments...)
 				stdout, err = cmd.Output()
 				if err != nil {
 					fmt.Println(err.Error())
@@ -210,7 +223,7 @@ func main() {
 				fmt.Println(string(stdout))
 			} else {
 				// Configures package
-				cmd = exec.Command("./configure", makearguments)
+				cmd = exec.Command(conflocation, makearguments...)
 				stdout, err = cmd.Output()
 				if err != nil {
 					fmt.Println(err.Error())
@@ -228,11 +241,12 @@ func main() {
 				return
 			}
 			fmt.Println(string(stdout))
+			fmt.Println("Done.")
 
 		case "install":
-			packageName := os.Args[1]
-			packageVer := os.Args[2]
-			installarguments = os.Args[3:]
+			packageName := os.Args[2]
+			packageVer := os.Args[3]
+			installarguments = os.Args[4:]
 
 			// Discoveres built packages
 			files, err := ioutil.ReadDir("/usr/pkgsrc")
@@ -242,20 +256,30 @@ func main() {
 			for _, f := range files {
 				packageBuiltDir = "/usr/pkgsrc/" + f.Name()
 			}
-
 			os.Chdir(packageBuiltDir)
 
 			// Attempts to chdir into built
 			os.Chdir("build")
 
-			for i := 0; i < len(installarguments); i++ {
-				makearguments = makearguments + " " + installarguments[i]
+			for i := 0; i < len(buildarguments); i++ {
+				if inList(pacsymArguments, buildarguments[i]) == false {
+					makearguments = append(makearguments, buildarguments[i])
+				}
 			}
 
-			fmt.Println("Installing...")
-			destdir := "DESTDIR=/usr/pkg/" + packageName + "/" + packageVer + "/"
-			cmd := exec.Command("make", "install", destdir, makearguments)
+			packageInstallDir := "/usr/pkg/" + packageName + "/" + packageVer + "/"
+			cmd := exec.Command("mkdir", "--parents", "--verbose", packageInstallDir)
 			stdout, err := cmd.Output()
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			fmt.Println(string(stdout))
+			fmt.Println("Installing...")
+			param := "DESTDIR=/usr/pkg/" + packageName + "/" + packageVer + "/"
+			makeinstall := append([]string{"install", param}, makearguments...)
+			cmd = exec.Command("make", makeinstall...)
+			stdout, err = cmd.Output()
 			if err != nil {
 				fmt.Println(err.Error())
 				return
@@ -264,13 +288,20 @@ func main() {
 			fmt.Println("Done.")
 
 		case "clean":
-			cmd := exec.Command("rm -r * /usr/pkgsrc/*")
-			stdout, err := cmd.Output()
+			files, err := ioutil.ReadDir("/usr/pkg")
 			if err != nil {
-				fmt.Println(err.Error())
-				return
+				log.Fatal(err)
 			}
-			fmt.Println(string(stdout))
+			for _, f := range files {
+				toRemove := "/usr/pkgsrc/" + f.Name()
+				cmd := exec.Command("rm", "-r", toRemove)
+				stdout, err := cmd.Output()
+				if err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				fmt.Println(string(stdout))
+			}
 			fmt.Println("Done.")
 
 		default:
