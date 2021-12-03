@@ -1,8 +1,15 @@
 VER=2.2
+
+all: pacsym
+
 pacsym:
-  go build pacsym.go
+	go build pacsym.go
+
+clean:
+	@rm -f pacsym
+
 install:
-  mkdir --parents /usr/pkg/pacsym/$(VER)/bin/
-  mv pacsym /usr/pkg/pacsym/$(VER)/bin/pacsym
-  mkdir --parents /usr/pkgsrc/
-  ln -sf /usr/pkg/pacsym/$(VER)/bin/pacsym /bin/
+	@mkdir -pv /usr/pkg/pacsym/$(VER)/bin/
+	@mv pacsym /usr/pkg/pacsym/$(VER)/bin/pacsym -v
+	@mkdir -p /usr/pkgsrc/
+	@ln -svf /usr/pkg/pacsym/$(VER)/bin/pacsym /bin/
