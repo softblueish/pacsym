@@ -47,6 +47,12 @@ make install
 
 and it will install, compile and symlink in compliance to `pacsym`.
 
+After you've installed the package, use
+```
+pacsym clean
+```
+to clear the ``/usr/pkgsrc/`` directory, which is important as ``pacsync`` doesn't work correctly when the build directory is still in the ``/usr/pkgsrc/``  directory. The reason it's not automatically cleared after installation is so you still can still interact with the code after install.
+
 ## Note
 
 To follow true with the nature of LFS, I recommend to look at the source code of the package manager so you truly understand what it's doing to your system.
