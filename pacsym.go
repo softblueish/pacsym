@@ -42,7 +42,18 @@ var (
 )
 
 func help() {
-	fmt.Printf("sync - Symlinks all installed packages in /usr/pkg\nbuild <URL> [OPTIONS] [MAKEFLAGS] - Compiles a package from url or local file\n--local -l - Compiles from local file, takes a filepath instead of url\n--separate-builddir -s - Compiles in a separate build directory\ninstall <PACKAGE NAME> <PACKAGE VERSION> [MAKEFLAGS] - Installs previously built package and gives it a name and a version.\nclean - Removes leftover sourcecode.")
+	fmt.Printf("\n" +
+	"Commands\n" + 
+	"======================\n" +
+	"sync - Symlinks all installed packages in /usr/pkg\n" + 
+	"build <URL> [OPTIONS] [MAKEFLAGS] - Compiles a package from url or local file\n" + 
+	"install <PACKAGE NAME> <PACKAGE VERSION> [MAKEFLAGS] - Installs a built package and gives it a name and a version.\n" + 
+	"clean - Removes leftover sourcecode.\n" +
+	"\nFlags\n" +
+	"======================\n" +
+	"--local -l - Compiles from local file, takes a filepath instead of url\n" + 
+	"--separate-builddir -s - Compiles in a separate build directory\n" +
+	"\n")
 }
 
 func walk(s string, d fs.DirEntry, err error) error {
