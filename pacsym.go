@@ -207,16 +207,6 @@ func main() {
 			}
 			fmt.Println(string(stdout))
 
-			// Removes package
-			cmd = exec.Command("rm", "-r", "/usr/pkgsrc/*")
-			stdout, err = cmd.Output()
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-			fmt.Println(string(stdout))
-			fmt.Println("Done.")
-
 		default:
 			help()
 		}
