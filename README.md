@@ -6,7 +6,7 @@ A package manager powered by symlinks.
 
 The package manager assumes that all software installed is installed with `/usr/pkg/<packagename>/<packageversion>`. The same software may not have two versions of the same software installed at the same time, it would cause a slot conflict which the software doesn't know yet how to handle.
 
-To build software you pass the `build` command, where ``<URL>`` is replaced with a url leading to a tarball with the source code to the software.
+To build software you pass the `build` command
 
 ```
 pacsym build <URL> [OPTIONS] [MAKEFLAGS]
@@ -46,12 +46,6 @@ make install
 ```
 
 and it will install, compile and symlink in compliance to `pacsym`.
-
-After you've installed the package, use
-```
-pacsym clean
-```
-to clear the ``/usr/pkgsrc/`` directory, which is important as ``pacsync`` doesn't work correctly when the build directory is still in the ``/usr/pkgsrc/``  directory. The reason it's not automatically cleared after installation is so you still can still interact with the code after install.
 
 ## Note
 
