@@ -1,4 +1,4 @@
-VER=2.4
+VER=2.5
 
 all: pacsym
 
